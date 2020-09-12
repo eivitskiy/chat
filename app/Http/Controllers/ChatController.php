@@ -27,7 +27,7 @@ class ChatController extends Controller
             [
                 'created_at' => '2020-09-11 12:13:14',
                 'user'       => [
-                    'username' => 'alex',
+                    'name' => 'alex',
                 ],
                 'message'    => 'msg 1',
             ],

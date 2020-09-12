@@ -10,7 +10,9 @@
                             <ul class="list-group">
                                 <li v-for="message in messages" v-model="modelMessages" class="list-group-item">
                                     <span class="badge badge-pill">[{{ message.created_at }}]</span>
-                                    <span class="badge badge-secondary">{{ message.user.username }}</span>:
+                                    <span :class="message.class" class="badge">
+                                        {{ message.user.name }}
+                                    </span>:
                                     {{ message.message }}
                                 </li>
 
@@ -37,11 +39,11 @@
 
                     <div class="card-body overflow-auto">
                         <ul class="list-group list-group-flush">
-                            <li class="list-group-item">Cras justo odio</li>
-                            <li class="list-group-item">Dapibus ac facilisis in</li>
-                            <li class="list-group-item">Morbi leo risus</li>
-                            <li class="list-group-item">Porta ac consectetur ac</li>
-                            <li class="list-group-item">Vestibulum at eros</li>
+                            <li v-for="user in users"
+                                v-model="modelUsers"
+                                v-bind:class="{'list-group-item': true, 'bg-light': (user.name === myselfuser.name)}"
+                            >{{ user.name }}
+                            </li>
                         </ul>
                     </div>
                 </div>
@@ -51,27 +53,76 @@
 </template>
 
 <script>
+
+import Echo from 'laravel-echo';
+
 export default {
     props:   {
-        messages: {
+        messages:   {
             type:     Array,
             required: true,
+        },
+        myselfuser: {
+            type:     Object,
+            required: true,
+        },
+        users:      {
+            type:     Array,
+            required: false,
+            default:  function () { return []; },
         }
     },
     data() {
         return {
-            modelMessages: this.messages
+            modelMessages: this.messages,
+            modelUsers:    this.users,
         };
     },
     methods: {
+        eventHere(users) {
+            users.forEach((user) => {
+                this.modelUsers.push(user);
+            });
+        },
+        eventJoining(user) {
+            this.modelUsers.push(user);
+
+            this.modelMessages.push({
+                class:      'badge-dark',
+                created_at: (new Date()).toLocaleString(),
+                user:       {
+                    name: 'service'
+                },
+                message:    `user '${user.name}' joined the chat`
+            });
+        },
+        eventLeaving(user) {
+            let self = this;
+
+            self.modelUsers.forEach((userElement, userNumber) => {
+                if (user.name === userElement.name) {
+                    self.modelUsers.splice(userNumber, 1);
+                }
+            });
+
+            this.modelMessages.push({
+                class:      'badge-dark',
+                created_at: (new Date()).toLocaleString(),
+                user:       {
+                    name: 'service'
+                },
+                message:    `user '${user.name}' left the chat`
+            });
+        },
         sendMessage() {
             let chatWrapper  = $('#chat-wrapper');
             let messageInput = $('#message-input');
 
             this.modelMessages.push({
+                class:      'badge-secondary',
                 created_at: (new Date()).toLocaleString(),
                 user:       {
-                    username: 'John'
+                    name: 'John'
                 },
                 message:    messageInput.val()
             });
@@ -80,17 +131,30 @@ export default {
                 chatWrapper.scrollTop(chatWrapper[0].scrollHeight);
                 messageInput.val(null);
             }, 100);
-        }
+        },
     },
     mounted() {
-        console.log(this.modelMessages);
+        let self = this;
+
+        window.io = require('socket.io-client');
+
+        window.Echo = new Echo({
+            broadcaster: 'socket.io',
+            host:        window.location.hostname + ':6001'
+        });
+
+        window.Echo.join('chat')
+            .here(self.eventHere)
+            .joining(self.eventJoining)
+            .leaving(self.eventLeaving);
     }
 };
 </script>
 
 <style>
-.card {
+.mt-3.h-50 .card {
     max-height: 50vh;
+    min-height: 50vh;
 }
 
 #chat-wrapper {
