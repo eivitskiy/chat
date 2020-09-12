@@ -23,6 +23,16 @@ class ChatController extends Controller
      */
     public function index()
     {
-        return view('chat');
+        $messages = [
+            [
+                'created_at' => '2020-09-11 12:13:14',
+                'user'       => [
+                    'username' => 'alex',
+                ],
+                'message'    => 'msg 1',
+            ],
+        ];
+
+        return view('chat', ['messages' => $messages]);
     }
 }
