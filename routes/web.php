@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\ChatController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -19,4 +20,5 @@ Route::get('/', static function () {
 
 Auth::routes();
 
-Route::get('/chat', [App\Http\Controllers\ChatController::class, 'index'])->name('chat');
+Route::get('/chat', [ChatController::class, 'index'])->name('chat');
+Route::post('/chat/message', [ChatController::class, 'message'])->name('chat.message');

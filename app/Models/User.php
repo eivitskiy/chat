@@ -4,7 +4,9 @@ namespace App\Models;
 
 use Eloquent;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\DatabaseNotification;
 use Illuminate\Notifications\DatabaseNotificationCollection;
@@ -36,6 +38,8 @@ use Illuminate\Support\Carbon;
  * @method static Builder|User whereRememberToken($value)
  * @method static Builder|User whereUpdatedAt($value)
  * @mixin Eloquent
+ * @property-read Collection|Message[]                                  $messages
+ * @property-read int|null                                              $messages_count
  */
 class User extends Authenticatable
 {
@@ -67,4 +71,9 @@ class User extends Authenticatable
     protected $casts = [
         'email_verified_at' => 'datetime',
     ];
+
+    public function messages(): HasMany
+    {
+        return $this->hasMany(Message::class);
+    }
 }

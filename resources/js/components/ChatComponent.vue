@@ -23,7 +23,8 @@
                             <div class="input-group-prepend">
                                 <span class="input-group-text">Your message:</span>
                             </div>
-                            <input id="message-input" aria-label="Message" class="form-control" type="text">
+                            <input id="message-input" v-model="modelInput" aria-label="Message" class="form-control"
+                                   type="text" v-on:keyup="sendMessage">
                             <div class="input-group-append">
                                 <button class="btn btn-secondary" type="button" v-on:click="sendMessage">
                                     <i class="fas fa-paper-plane"></i>
@@ -76,9 +77,21 @@ export default {
         return {
             modelMessages: this.messages,
             modelUsers:    this.users,
+            modelInput:    '',
         };
     },
     methods: {
+        appendMessage(message) {
+            let chatWrapper  = $('#chat-wrapper');
+            let messageInput = $('#message-input');
+
+            this.modelMessages.push(message);
+
+            setTimeout(function () {
+                chatWrapper.scrollTop(chatWrapper[0].scrollHeight);
+                messageInput.val(null);
+            }, 100);
+        },
         eventHere(users) {
             users.forEach((user) => {
                 this.modelUsers.push(user);
@@ -87,7 +100,7 @@ export default {
         eventJoining(user) {
             this.modelUsers.push(user);
 
-            this.modelMessages.push({
+            this.appendMessage({
                 class:      'badge-dark',
                 created_at: (new Date()).toLocaleString(),
                 user:       {
@@ -105,7 +118,7 @@ export default {
                 }
             });
 
-            this.modelMessages.push({
+            this.appendMessage({
                 class:      'badge-dark',
                 created_at: (new Date()).toLocaleString(),
                 user:       {
@@ -114,23 +127,29 @@ export default {
                 message:    `user '${user.name}' left the chat`
             });
         },
-        sendMessage() {
-            let chatWrapper  = $('#chat-wrapper');
-            let messageInput = $('#message-input');
+        eventNewMessage(e) {
+            let msg = e.message;
+            this.appendMessage(msg);
+        },
+        sendMessage(e) {
+            if (e instanceof KeyboardEvent && e.keyCode !== 13) {
+                return 0;
+            }
 
-            this.modelMessages.push({
-                class:      'badge-secondary',
-                created_at: (new Date()).toLocaleString(),
-                user:       {
-                    name: 'John'
-                },
-                message:    messageInput.val()
-            });
+            let self = this;
 
-            setTimeout(function () {
-                chatWrapper.scrollTop(chatWrapper[0].scrollHeight);
-                messageInput.val(null);
-            }, 100);
+            if ('' !== self.modelInput.toString()) {
+                axios.post('/chat/message', {
+                    message: self.modelInput
+                })
+                    .then(function (response) {
+                        self.appendMessage(response.data);
+                        self.modelInput = '';
+                    })
+                    .catch(function (error) {
+                        console.error(error);
+                    });
+            }
         },
     },
     mounted() {
@@ -146,7 +165,8 @@ export default {
         window.Echo.join('chat')
             .here(self.eventHere)
             .joining(self.eventJoining)
-            .leaving(self.eventLeaving);
+            .leaving(self.eventLeaving)
+            .listen('.NewMessage', self.eventNewMessage);
     }
 };
 </script>
@@ -158,7 +178,7 @@ export default {
 }
 
 #chat-wrapper {
-    height: 95% !important;
+    height: 35vh !important;
 }
 
 #message-wrapper {

@@ -2,7 +2,11 @@
 
 namespace App\Http\Controllers;
 
+use App\Events\ChatMessage;
+use App\Models\Message;
 use Illuminate\Contracts\Support\Renderable;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 
 class ChatController extends Controller
 {
@@ -21,18 +25,31 @@ class ChatController extends Controller
      *
      * @return Renderable
      */
-    public function index()
+    public function index(): Renderable
     {
-        $messages = [
-            [
-                'created_at' => '2020-09-11 12:13:14',
-                'user'       => [
-                    'name' => 'alex',
-                ],
-                'message'    => 'msg 1',
-            ],
-        ];
+        $latMessageIds = Message::orderBy('created_at', 'desc')
+            ->take(5)
+            ->pluck('id');
+
+        $messages = Message::with('user')
+            ->orderBy('created_at', 'asc')
+            ->whereIn('id', $latMessageIds)
+            ->get();
 
         return view('chat', ['messages' => $messages]);
+    }
+
+    public function message(Request $request)
+    {
+        $msg = Message::create([
+            'user_id' => Auth::id(),
+            'message' => $request->input('message'),
+        ]);
+        /** @var Message $message */
+        $message = Message::with('user')->find($msg->id);
+
+        broadcast(new ChatMessage($message))->toOthers();
+
+        return response($message);
     }
 }
